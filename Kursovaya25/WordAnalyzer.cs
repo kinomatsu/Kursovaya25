@@ -222,4 +222,199 @@ namespace Kursovaya25
             return result;
         }
     }
+    /// <summary>
+    /// Основной анализатор текста
+    /// </summary>
+    public class WordAnalyzer
+    {
+        // Стоп-слова (русские и английские)
+        private static readonly HashSet<string> StopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // русские предлоги, союзы, местоимения
+            "и","в","не","на","я","что","тот","быть","с","а","весь","это","как","она",
+            "по","но","они","к","у","же","вы","за","бы","по","из","он","мы","при",
+            "о","от","так","его","если","уже","или","ни","был","то","ещё","бы","для",
+            "нет","до","вот","ну","ли","да","со","её","их","там","где","есть","раз",
+            "тут","под","над","без","про","через","между","перед","после","около",
+            "себя","себе","свой","своя","своё","свои","этот","эта","эти","эту",
+            "который","которая","которое","которые","такой","такая","такое","такие",
+            "один","одна","одно","одни","все","всё","всем","всех","всей","всему",
+            "мне","меня","тебя","тебе","него","ней","нему","нас","вас","им","ими",
+            "чем","чего","чему","чём","кто","кого","кому","кем","когда","куда",
+            "откуда","почему","зачем","потому","поэтому","хотя","чтобы","будто",
+            "словно","пока","лишь","только","даже","именно","просто","очень","уж",
+            "ведь","вдруг","вообще","здесь","сейчас","теперь","тогда","иногда",
+            "всегда","никогда","нигде","никуда","нет","нельзя","надо","можно",
+            // английские
+            "the","a","an","and","or","but","in","on","at","to","for","of","with",
+            "is","are","was","were","be","been","being","have","has","had","do",
+            "does","did","will","would","could","should","may","might","shall",
+            "it","its","this","that","these","those","i","you","he","she","we","they",
+            "me","him","her","us","them","my","your","his","our","their","what",
+            "which","who","whom","when","where","why","how","not","no","so","if",
+            "as","by","from","up","about","into","through","during","before","after"
+        };
+
+        private bool _useStopWords = true;
+        private string _sortAlgorithm = "QuickSort";
+
+        public bool UseStopWords
+        {
+            get => _useStopWords;
+            set => _useStopWords = value;
+        }
+
+        public string SortAlgorithm
+        {
+            get => _sortAlgorithm;
+            set => _sortAlgorithm = value;
+        }
+
+        /// <summary>
+        /// Токенизация: разбивает текст на слова, удаляет пунктуацию, приводит к нижнему регистру
+        /// </summary>
+        public List<string> Tokenize(string text)
+        {
+            var words = new List<string>();
+            var sb = new StringBuilder();
+
+            foreach (char c in text)
+            {
+                if (char.IsLetter(c) || c == '-' || c == '\'')
+                {
+                    sb.Append(char.ToLowerInvariant(c));
+                }
+                else
+                {
+                    if (sb.Length > 0)
+                    {
+                        // убираем дефисы/апострофы по краям
+                        string word = sb.ToString().Trim('-', '\'');
+                        if (word.Length > 0)
+                            words.Add(word);
+                        sb.Clear();
+                    }
+                }
+            }
+            if (sb.Length > 0)
+            {
+                string word = sb.ToString().Trim('-', '\'');
+                if (word.Length > 0)
+                    words.Add(word);
+            }
+
+            return words;
+        }
+        /// <summary>
+        /// Анализ текста: возвращает результат с топ-50 словами и статистикой
+        /// </summary>
+        public AnalysisResult Analyze(string text)
+        {
+            var tokens = Tokenize(text);
+
+            var table = new WordHashTable();
+            int totalLength = 0;
+            string longestWord = "";
+
+            foreach (var word in tokens)
+            {
+                if (_useStopWords && StopWords.Contains(word))
+                    continue;
+                if (word.Length < 2) // пропускаем однобуквенные
+                    continue;
+
+                table.Increment(word);
+                totalLength += word.Length;
+
+                if (word.Length > longestWord.Length)
+                    longestWord = word;
+            }
+
+            var entries = table.GetAllEntries();
+
+            // Сортировка выбранным алгоритмом
+            if (_sortAlgorithm == "MergeSort")
+                entries = SortAlgorithms.MergeSort(entries);
+            else
+                SortAlgorithms.QuickSort(entries, 0, entries.Length - 1);
+
+            // Топ-50
+            int topCount = Math.Min(50, entries.Length);
+            var top = new WordEntry[topCount];
+            Array.Copy(entries, 0, top, 0, topCount);
+
+            // Распределение длин слов (макс длина 30)
+            int maxLen = 30;
+            var dist = new int[maxLen + 1];
+            foreach (var e in entries)
+            {
+                int len = Math.Min(e.Word.Length, maxLen);
+                dist[len] += e.Count;
+            }
+
+            int totalWords = 0;
+            foreach (var e in entries) totalWords += e.Count;
+
+            // Вычисляем TF для каждого слова: TF(t) = count(t) / totalWords
+            // Сортировка уже выполнена, поэтому проходим по всем entries
+            if (totalWords > 0)
+            {
+                foreach (var e in entries)
+                    e.TF = (double)e.Count / totalWords;
+            }
+
+            return new AnalysisResult
+            {
+                TopWords = top,
+                TotalWords = totalWords,
+                UniqueWords = entries.Length,
+                AverageWordLength = totalWords > 0 ? (double)totalLength / totalWords : 0,
+                LongestWord = longestWord,
+                LengthDistribution = dist
+            };
+        }
+
+        /// <summary>
+        /// Загрузка текста из файла (до 10 МБ)
+        /// </summary>
+        public string LoadFile(string path)
+        {
+            var info = new FileInfo(path);
+            if (info.Length > 10 * 1024 * 1024)
+                throw new IOException("Файл превышает 10 МБ.");
+            return File.ReadAllText(path, Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// Сохранение результатов анализа в текстовый файл
+        /// </summary>
+        public void SaveResults(string path, AnalysisResult result, string sourceFile)
+        {
+            using var sw = new StreamWriter(path, false, Encoding.UTF8);
+            sw.WriteLine("=== АНАЛИЗ ЧАСТОТНОСТИ СЛОВ ===");
+            sw.WriteLine($"Источник: {sourceFile}");
+            sw.WriteLine($"Дата: {DateTime.Now:dd.MM.yyyy HH:mm:ss}");
+            sw.WriteLine();
+            sw.WriteLine("--- СТАТИСТИКА ---");
+            sw.WriteLine($"Всего слов (без стоп-слов): {result.TotalWords}");
+            sw.WriteLine($"Уникальных слов:            {result.UniqueWords}");
+            sw.WriteLine($"Средняя длина слова:        {result.AverageWordLength:F2}");
+            sw.WriteLine($"Самое длинное слово:        {result.LongestWord}");
+            sw.WriteLine();
+            sw.WriteLine("--- ТОП-50 СЛОВ ---");
+            sw.WriteLine($"{"№",-4} {"Слово",-30} {"Частота",8} {"TF",10}");
+            sw.WriteLine(new string('-', 56));
+            for (int i = 0; i < result.TopWords.Length; i++)
+            {
+                var w = result.TopWords[i];
+                sw.WriteLine($"{i + 1,-4} {w.Word,-30} {w.Count,8} {w.TF,10:F6}");
+            }
+            sw.WriteLine();
+            sw.WriteLine("--- РАСПРЕДЕЛЕНИЕ ДЛИН СЛОВ ---");
+            sw.WriteLine($"{"Длина",-8} {"Количество",10}");
+            for (int i = 1; i < result.LengthDistribution.Length; i++)
+                if (result.LengthDistribution[i] > 0)
+                    sw.WriteLine($"{i,-8} {result.LengthDistribution[i],10}");
+        }
+    }
 }
