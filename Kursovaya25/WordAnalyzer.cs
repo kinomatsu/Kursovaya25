@@ -15,7 +15,7 @@ namespace Kursovaya25
         public int UniqueWords { get; set; }
         public double AverageWordLength { get; set; }
         public string LongestWord { get; set; } = "";
-        public int[] LengthDistribution { get; set; } = Array.Empty<int>(); 
+        public int[] LengthDistribution { get; set; } = Array.Empty<int>();
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ namespace Kursovaya25
     /// </summary>
     public class WordHashTable
     {
-        private const int DEFAULT_CAPACITY = 131071; 
+        private const int DEFAULT_CAPACITY = 131071;
         private const double LOAD_FACTOR = 0.7;
 
         private string?[] _keys;
@@ -154,6 +154,72 @@ namespace Kursovaya25
             for (int i = 3; (long)i * i <= n; i += 2)
                 if (n % i == 0) return false;
             return true;
+        }
+    }
+    /// <summary>
+    /// Алгоритмы сортировки
+    /// </summary>
+    public static class SortAlgorithms
+    {
+        /// <summary>
+        /// Быстрая сортировка по убыванию Count
+        /// </summary>
+        public static void QuickSort(WordEntry[] arr, int left, int right)
+        {
+            if (left >= right) return;
+            int pivot = Partition(arr, left, right);
+            QuickSort(arr, left, pivot - 1);
+            QuickSort(arr, pivot + 1, right);
+        }
+
+        private static int Partition(WordEntry[] arr, int left, int right)
+        {
+            int pivotVal = arr[right].Count;
+            int i = left - 1;
+            for (int j = left; j < right; j++)
+            {
+                if (arr[j].Count >= pivotVal) // убывание
+                {
+                    i++;
+                    (arr[i], arr[j]) = (arr[j], arr[i]);
+                }
+            }
+            (arr[i + 1], arr[right]) = (arr[right], arr[i + 1]);
+            return i + 1;
+        }
+
+        /// <summary>
+        /// Сортировка слиянием по убыванию Count (возвращает новый массив)
+        /// </summary>
+        public static WordEntry[] MergeSort(WordEntry[] arr)
+        {
+            if (arr.Length <= 1) return arr;
+            int mid = arr.Length / 2;
+
+            var left = new WordEntry[mid];
+            var right = new WordEntry[arr.Length - mid];
+            Array.Copy(arr, 0, left, 0, mid);
+            Array.Copy(arr, mid, right, 0, right.Length);
+
+            left = MergeSort(left);
+            right = MergeSort(right);
+            return Merge(left, right);
+        }
+
+        private static WordEntry[] Merge(WordEntry[] left, WordEntry[] right)
+        {
+            var result = new WordEntry[left.Length + right.Length];
+            int i = 0, j = 0, k = 0;
+            while (i < left.Length && j < right.Length)
+            {
+                if (left[i].Count >= right[j].Count)
+                    result[k++] = left[i++];
+                else
+                    result[k++] = right[j++];
+            }
+            while (i < left.Length) result[k++] = left[i++];
+            while (j < right.Length) result[k++] = right[j++];
+            return result;
         }
     }
 }
