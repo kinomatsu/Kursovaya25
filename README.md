@@ -84,26 +84,6 @@ $$TF(t) = \frac{count(t)}{N}$$
 
 ---
 
-## 4. Структура проекта
-
-```
-📦 Kursovaya25.sln
-│
-├── 🖥️ Kursovaya25/               — основное приложение (net8.0-windows · WinForms)
-│   ├── Program.cs                  — точка входа · STAThread · Application.Run
-│   ├── Form1.cs                    — главная форма · визуализация · UI · события
-│   ├── Form1.Designer.cs           — автогенерированный код формы
-│   ├── WordAnalyzer.cs             — вся бизнес-логика:
-│   │                                 WordEntry, AnalysisResult,
-│   │                                 WordHashTable, SortAlgorithms, WordAnalyzer
-│
-└── 🧪 Kursovaya25.Tests/         — проект тестов (net8.0-windows · NUnit 3)
-    ├── WordHashTableTests.cs       — 8 тестов хеш-таблицы
-    ├── TokenizerTests.cs           — 9 тестов токенизатора
-    ├── TFAnalysisTests.cs          — 12 тестов анализа и метрики TF
-    └── SortAlgorithmsTests.cs      — 13 тестов QuickSort и MergeSort
-```
-
 ### Ключевые классы
 
 ```mermaid
@@ -154,7 +134,7 @@ classDiagram
 
 ---
 
-## 5. Графический интерфейс
+## 4. Графический интерфейс
 
 Приложение содержит панель управления и четыре вкладки:
 
@@ -174,7 +154,7 @@ classDiagram
 
 ---
 
-## 6. Модульное тестирование
+## 5. Модульное тестирование
 
 Верификация алгоритмов проведена с использованием фреймворка **NUnit 3**. Тесты спроектированы по паттерну **AAA (Arrange — Act — Assert)** и сгруппированы по тестируемым компонентам.
 
@@ -189,7 +169,7 @@ classDiagram
 
 ---
 
-## 7. Инструкция по сборке и запуску
+## 6. Инструкция по сборке и запуску
 
 Для компиляции и запуска необходима платформа **.NET 8 SDK** и операционная система **Windows** (требование Windows Forms).
 
